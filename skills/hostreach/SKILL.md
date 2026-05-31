@@ -1,11 +1,11 @@
 ---
 name: hostreach
-description: Use when interacting with HostReach — extract real-estate leads from Idealista and other portals, manage campaigns, CRM lead pipeline, WhatsApp messaging, property valuations, fichas, and scheduling. Provides CLI, MCP server and direct API access.
+description: Use when interacting with Hostreach — extract real-estate leads from Idealista and other portals, manage campaigns, CRM lead pipeline, WhatsApp messaging, property valuations, fichas, and scheduling. Provides CLI, MCP server and direct API access.
 ---
 
-# HostReach Agent Skill
+# Hostreach Agent Skill
 
-Use this skill when the user asks you to interact with HostReach: extract leads, manage campaigns, view inbox, create valuations, generate fichas, schedule appointments, or perform any action available on the platform.
+Use this skill when the user asks you to interact with Hostreach: extract leads, manage campaigns, view inbox, create valuations, generate fichas, schedule appointments, or perform any action available on the platform.
 
 ## When to use MCP vs CLI vs direct API
 
@@ -36,7 +36,7 @@ Three ways to authenticate, in priority order:
 | 2 | Config file | `hostreach auth login` (saves to `~/.config/hostreach/`) |
 | 3 | Environment variable | `export HOSTREACH_API_KEY=hr_live_...` |
 
-Generate an API key from **Settings › Workspace › Acceso API** in the HostReach dashboard.
+Generate an API key from **Settings › Workspace › Acceso API** in the Hostreach dashboard.
 
 ```bash
 hostreach auth login      # interactive — saves key + base URL
@@ -184,7 +184,7 @@ Available MCP tools:
 
 ## Agent Skill
 
-Install the skill to give AI agents deep knowledge of HostReach APIs:
+Install the skill to give AI agents deep knowledge of Hostreach APIs:
 
 ```bash
 # Install for a specific agent

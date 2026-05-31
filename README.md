@@ -1,6 +1,6 @@
-# HostReach Agent Skills
+# Hostreach Agent Skills
 
-Official Agent Skills for [HostReach](https://hostreach.io) — the real-estate lead generation and CRM platform for Idealista and other portals.
+Official Agent Skills for [Hostreach](https://hostreach.io) — the real-estate lead generation and CRM platform for Idealista and other portals.
 
 ## Install
 
@@ -22,7 +22,7 @@ npx skills add hostreach/agent-skills -g --all
 
 > Uses [vercel-labs/skills](https://github.com/vercel-labs/skills) under the hood. No global install required.
 
-### Via HostReach CLI
+### Via Hostreach CLI
 
 ```bash
 npm install -g @hostreach/cli
@@ -71,7 +71,7 @@ npx skills update hostreach/agent-skills
 
 ## Links
 
-- [HostReach dashboard](https://app.hostreach.io)
+- [Hostreach dashboard](https://app.hostreach.io)
 - [API docs](https://docs.hostreach.io/api)
 - [npm package `@hostreach/cli`](https://www.npmjs.com/package/@hostreach/cli)
 - [OpenAPI spec](https://api.hostreach.io/v1/public/v1/openapi.json)
