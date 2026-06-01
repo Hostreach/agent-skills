@@ -70,12 +70,15 @@ hostreach leads update --id <leadId> --status CONTACTED
 
 # Campaigns
 hostreach campaigns list
-hostreach campaigns create --name "Campaña Valencia Q3" --platform idealista
+hostreach campaigns create --platform idealista --name "Valencia Rent Q3"
+hostreach campaigns create --platform csv_import --name "CSV Drip" --segmentation '{"batchSize":10}' --settings '{"scheduledHours":"9,14","scheduledDays":"1,2,3,4,5"}'
+hostreach campaigns create --platform widget --name "Widget inbound"
+hostreach campaigns update-status --id <campaignId> --status running
 hostreach campaigns execute --id <campaignId>
 hostreach campaigns stats --id <campaignId>
 
-# Extractions
-hostreach extractions create --platform idealista --filters '{"operation":"rent","location":"valencia"}'
+# Extractions (portal platforms only — one-shot async scrape)
+hostreach extractions create --platform idealista --filters '{"operation":"rent","location":{"id":"0-EU-ES-VC","label":"Valencia"}}'
 hostreach extractions get --id <extractionId>
 hostreach extractions list --page 1 --limit 20
 
@@ -234,6 +237,72 @@ Always use one of these exact values when filtering or updating a lead's status:
 | `CLOSED` | Deal closed |
 | `DISCARDED` | Removed from pipeline |
 
+## Campaign types
+
+The `platform` field is the discriminator that determines how leads enter a campaign.
+
+| Platform | Type | Leads source | Modes available | Notes |
+|----------|------|-------------|-----------------|-------|
+| `idealista` | Portal | Scheduled/manual scrape from Idealista (Spain) | `extract_only`, `extract_and_contact` | Use `GET /platforms/idealista/filters` |
+| `fotocasa` | Portal | Scheduled/manual scrape from Fotocasa (Spain) | `extract_only`, `extract_and_contact` | |
+| `metrocuadrado` | Portal | Scrape from Metrocuadrado (Colombia) | `extract_only`, `extract_and_contact` | |
+| `inmuebles24` | Portal | Scrape from Inmuebles24 (Mexico) | `extract_only`, `extract_and_contact` | |
+| `zonaprop` | Portal | Scrape from Zonaprop (Argentina) | `extract_only`, `extract_and_contact` | |
+| `csv_import` | CSV | Leads uploaded via dashboard CSV | `extract_and_contact` only (forced) | Requires `batchSize` + schedule |
+| `widget` | Widget | Inbound from embedded Hostreach widget form | `extract_and_contact` only (forced) | Max 1 running per workspace |
+
+### Portal campaign — key params
+
+```json
+{
+  "platform": "idealista",
+  "name": "Valencia Rent Q3 2026",
+  "mode": "extract_and_contact",
+  "contactMode": "whatsapp",
+  "segmentation": {
+    "filters": { "operation": "rent", "location": { "id": "0-EU-ES-VC-46", "label": "Valencia" } },
+    "expectedResults": 50
+  }
+}
+```
+
+The campaign is created as `draft`. Set it to `running` via `PATCH /:id/status` or use `POST /:id/execute` for a one-off manual run.
+
+### CSV import campaign — key params
+
+```json
+{
+  "platform": "csv_import",
+  "name": "My CSV drip",
+  "contactMode": "whatsapp",
+  "segmentation": { "batchSize": 10 },
+  "settings": { "scheduledHours": "9,14:30", "scheduledDays": "1,2,3,4,5" }
+}
+```
+
+`batchSize` (1–25) = leads contacted per scheduled run. `scheduledHours` and `scheduledDays` are required before transitioning to `running`. Upload leads via the dashboard.
+
+### Widget campaign — key params
+
+```json
+{
+  "platform": "widget",
+  "name": "Website inbound",
+  "contactMode": "whatsapp"
+}
+```
+
+No segmentation or manual execution. Only one `running` widget campaign per workspace at a time.
+
+### Campaign statuses
+
+| Status | Meaning |
+|--------|---------|
+| `draft` | Created, not yet active. Configure and set to `running` when ready. |
+| `running` | Active — scheduler runs on `scheduledHours`/`scheduledDays`. |
+| `paused` | Suspended — no new extractions or messages, resumes when set back to `running`. |
+| `completed` | Ended (CSV campaigns finish after all leads are processed). |
+
 ## Async extractions / polling
 
 Extractions are asynchronous jobs. After `start_extraction` / `extractions create`, poll until complete:
@@ -242,11 +311,13 @@ Extractions are asynchronous jobs. After `start_extraction` / `extractions creat
 # CLI polling pattern (use in a loop with sleep)
 hostreach extractions get --id <id>    # check status field
 
-# Status values: PENDING | RUNNING | COMPLETED | FAILED
+# Status values: QUEUED | RUNNING | COMPLETED | FAILED
 # Poll every 5–10s; stop after COMPLETED or FAILED (do not loop forever)
 ```
 
 Via MCP, call `get_extraction` and check `status`. If `status === 'FAILED'`, surface `error` field to the user.
+
+**Note:** Extractions only support portal platforms (`idealista`, `fotocasa`, `metrocuadrado`, `inmuebles24`, `zonaprop`). For `widget` or `csv_import`, create a campaign via `create_campaign` / `campaigns create` instead.
 
 ## Pagination
 
@@ -287,14 +358,23 @@ Structured errors are always printed to **stdout** as JSON with `"error": true`:
 5. hostreach extractions leads --id <id>
 ```
 
-### Manage campaign lifecycle
+### Manage campaign lifecycle (portal)
 
 ```
 1. hostreach campaigns list
-2. hostreach campaigns create --name "Campaña Valencia Q3" --platform idealista
-3. hostreach campaigns execute --id <id>
-4. hostreach campaigns update --id <id> --status paused
-5. hostreach campaigns stats --id <id>
+2. hostreach platforms locations --platform idealista --q "Valencia"
+3. hostreach campaigns create --platform idealista --name "Valencia Q3" --segmentation '{"filters":{"operation":"rent","location":<result>},"expectedResults":50}'
+4. hostreach campaigns update-status --id <id> --status running
+5. hostreach campaigns execute --id <id>   # manual one-off run
+6. hostreach campaigns stats --id <id>
+```
+
+### Create and activate a CSV drip campaign
+
+```
+1. hostreach campaigns create --platform csv_import --name "Contacts batch" --segmentation '{"batchSize":10}' --settings '{"scheduledHours":"9,14","scheduledDays":"1,2,3,4,5"}'
+2. # Upload leads via dashboard (CSV import)
+3. hostreach campaigns update-status --id <id> --status running
 ```
 
 ### CRM pipeline update
