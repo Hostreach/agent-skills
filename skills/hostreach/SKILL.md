@@ -96,7 +96,7 @@ hostreach valuations create --name "Piso Gran Via 45" --platform idealista
 hostreach valuations list
 
 # Fichas
-hostreach fichas generate --url "https://www.idealista.com/inmueble/12345678/"
+hostreach fichas generate --idealista-url "https://www.idealista.com/inmueble/12345678/"
 hostreach fichas list
 
 # Scheduling
@@ -171,7 +171,7 @@ Available MCP tools:
 
 **Leads:** `list_leads`, `get_lead`, `update_lead_status`, `add_lead_note`, `get_lead_notes`
 
-**Messaging:** `send_message`, `get_conversations`
+**Messaging:** `send_message`, `send_template`, `get_conversations`
 
 **Webhooks:** `list_webhooks`, `create_webhook`, `update_webhook`, `delete_webhook`, `test_webhook`
 
@@ -183,7 +183,7 @@ Available MCP tools:
 
 **Fichas:** `list_fichas`, `generate_ficha`, `get_ficha`, `delete_ficha`
 
-**Scheduling:** `list_event_types`, `create_event_type`, `get_event_type`, `get_availability`, `list_appointments`, `cancel_appointment`
+**Scheduling:** `list_event_types`, `create_event_type`, `update_event_type`, `get_event_type`, `get_availability`, `list_appointments`, `cancel_appointment`
 
 ## Agent Skill
 
@@ -229,13 +229,18 @@ Always use one of these exact values when filtering or updating a lead's status:
 
 | Status | Meaning |
 |--------|---------|
-| `PENDING` | Newly extracted, not yet contacted |
-| `CONTACTED` | First contact made |
-| `INTERESTED` | Lead expressed interest |
-| `NOT_INTERESTED` | Lead declined |
-| `APPOINTMENT_SET` | Meeting booked |
-| `CLOSED` | Deal closed |
-| `DISCARDED` | Removed from pipeline |
+| `PENDING` | Newly extracted, not yet contacted (system-set; cannot be assigned manually) |
+| `CONTACTED` | Outreach message sent |
+| `REPLIED` | Lead responded |
+| `QUALIFIED` | Confirmed interest |
+| `UNQUALIFIED` | Not a fit |
+| `MEETING_SCHEDULED` | Appointment booked |
+| `FOLLOWED_UP` | Follow-up sent |
+| `NEGOTIATION` | In active negotiation |
+| `WON` | Deal closed |
+| `LOST` | Deal lost |
+| `ARCHIVED` | Hidden from active pipeline |
+| `ERROR` | Delivery error |
 
 ## Campaign types
 
@@ -399,17 +404,114 @@ Structured errors are always printed to **stdout** as JSON with `"error": true`:
 ### Generate a property ficha from Idealista
 
 ```
-1. hostreach fichas generate --url "https://www.idealista.com/inmueble/12345678/"
+1. hostreach fichas generate --idealista-url "https://www.idealista.com/inmueble/12345678/"
 2. hostreach fichas get --id <id>
 ```
 
 ### Set up a webhook for lead events
 
 ```
-1. hostreach webhooks create --url "https://my-app.com/hooks" --events '["lead.created","lead.status_changed"]'
+1. hostreach webhooks create --url "https://my-app.com/hooks" --events '["leads.imported","lead.status_updated"]'
 2. hostreach webhooks test --id <id>
 3. hostreach webhooks list
 ```
+
+### Send a WhatsApp message / template
+
+```bash
+# Plain-text message
+hostreach messaging send --lead-id <leadId> --message "Hola, ¿sigue disponible el piso?"
+
+# Template message (scheduled)
+hostreach messaging send-template --lead-id <leadId> --template-id <templateId> --scheduled-at "2026-06-10T10:00:00Z"
+```
+
+MCP:
+```
+send_message(leadId, message, accountId?, campaignId?)
+send_template(leadId, templateId, accountId?, scheduledAt?, campaignId?)
+```
+
+### Create a property valuation
+
+MCP:
+```json
+create_valuation({
+  "latitude": 40.4168, "longitude": -3.7038,
+  "squareMeters": 80, "bedrooms": 3, "bathrooms": 2,
+  "propertyType": "homes", "operation": "sale",
+  "name": "Calle Mayor 12, 3º B"
+})
+```
+
+### Connect a WhatsApp account
+
+**Meta Cloud API:**
+```json
+POST /accounts
+{
+  "type": "whatsapp",
+  "whatsAppBusinessAccountId": "123456789012345",
+  "token": "EAAG...",
+  "phone": "+34600000000"
+}
+```
+
+**Evolution API:**
+```json
+POST /accounts
+{
+  "type": "whatsapp-no-api",
+  "phone": "+34600000000",
+  "evolutionInstanceId": "instance-1",
+  "evolutionApiUrl": "https://evo.example.com",
+  "evolutionApiKey": "your-key"
+}
+```
+
+### Create a WhatsApp template
+
+```json
+POST /templates
+{
+  "apiType": "meta-api",
+  "platform": "idealista",
+  "wabaId": "123456789012345",
+  "name": "bienvenida_inquilinos_v2",
+  "category": "MARKETING",
+  "language": "es",
+  "components": [
+    { "type": "BODY", "text": "Hola {{1}}, vi tu anuncio en Idealista. ¿Sigues buscando piso?" }
+  ]
+}
+```
+
+### Create a scheduling event type
+
+```json
+POST /scheduling/event-types
+{
+  "ownerAgentUserId": "<agentUserId>",
+  "name": "Property Tour",
+  "slug": "property-tour",
+  "durationMin": 30,
+  "locationMode": "onsite"
+}
+```
+
+### Create a webhook subscription
+
+```json
+POST /webhooks
+{
+  "url": "https://yourapp.com/webhooks/hostreach",
+  "secret": "your-signing-secret",
+  "name": "Production webhook",
+  "events": ["leads.imported", "lead.status_updated", "lead.first_response"]
+}
+```
+
+Supported events: `extraction.completed`, `leads.imported`, `lead.status_updated`, `lead.first_response`.
 
 ## Scopes
 
