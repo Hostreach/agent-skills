@@ -72,6 +72,6 @@ npx skills update hostreach/agent-skills
 ## Links
 
 - [Hostreach dashboard](https://app.hostreach.io)
-- [API docs](https://docs.hostreach.io/api)
+- [API docs](https://docs.hostreach.io)
 - [npm package `@hostreach/cli`](https://www.npmjs.com/package/@hostreach/cli)
 - [OpenAPI spec](https://api.hostreach.io/v1/public/v1/openapi.json)
